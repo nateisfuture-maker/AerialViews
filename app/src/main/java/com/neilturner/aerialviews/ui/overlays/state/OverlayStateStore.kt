@@ -2,6 +2,7 @@ package com.neilturner.aerialviews.ui.overlays.state
 
 import com.neilturner.aerialviews.models.enums.MetadataType
 import com.neilturner.aerialviews.models.enums.OverlayType
+import com.neilturner.aerialviews.services.BlueskyPostEvent
 import com.neilturner.aerialviews.services.MusicEvent
 import com.neilturner.aerialviews.services.weather.ForecastEvent
 import com.neilturner.aerialviews.services.weather.WeatherEvent
@@ -45,6 +46,10 @@ class OverlayStateStore {
         _uiState.update {
             it.copy(message = it.message.toMutableMap().apply { put(type, state) })
         }
+    }
+
+    fun setBluesky(event: BlueskyPostEvent) {
+        _uiState.update { it.copy(bluesky = event) }
     }
 
     fun setNowPlaying(event: MusicEvent) {
