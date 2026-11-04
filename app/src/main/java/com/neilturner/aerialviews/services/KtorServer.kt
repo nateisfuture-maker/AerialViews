@@ -209,20 +209,17 @@ internal fun Application.messageApiModule(
         post("/bluesky") {
             try {
                 val request = call.receive<BlueskyPostRequest>()
-                if (request.text.isBlank()) {
-                    call.respond(HttpStatusCode.BadRequest, ErrorResponse(error = "Post text is required."))
-                } else {
-                    onBlueskyReceived(
-                        BlueskyPostEvent(
-                            displayName = request.displayName.ifBlank { "Rice" },
-                            handle = request.handle.ifBlank { "@riceshitsalotz.bsky.social" },
-                            text = request.text.take(1000),
-                            avatarUrl = request.avatarUrl,
-                            createdAt = request.createdAt,
-                        ),
-                    )
-                    call.respond(HttpStatusCode.OK, SuccessResponse(message = "Bluesky post displayed"))
-                }
+                onBlueskyReceived(
+                    BlueskyPostEvent(
+                        displayName = request.displayName.ifBlank { "Rice" },
+                        handle = request.handle.ifBlank { "@riceshitsalotz.bsky.social" },
+                        text = request.text.take(1000),
+                        avatarUrl = request.avatarUrl,
+                        createdAt = request.createdAt,
+                    ),
+                )
+                val message = if (request.text.isBlank()) "Bluesky card cleared" else "Bluesky post displayed"
+                call.respond(HttpStatusCode.OK, SuccessResponse(message = message))
             } catch (e: Exception) {
                 Timber.e(e, "Error processing Bluesky post")
                 call.respond(HttpStatusCode.BadRequest, ErrorResponse(error = "Invalid Bluesky post payload."))
