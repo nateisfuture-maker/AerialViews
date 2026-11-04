@@ -2,7 +2,6 @@ package com.neilturner.aerialviews.ui.overlays
 
 import android.content.Context
 import android.graphics.Color
-import android.graphics.Outline
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
