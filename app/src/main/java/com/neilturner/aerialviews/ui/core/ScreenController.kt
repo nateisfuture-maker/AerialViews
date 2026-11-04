@@ -48,6 +48,7 @@ import com.neilturner.aerialviews.ui.helpers.OverlayOpacityHelper
 import com.neilturner.aerialviews.ui.helpers.PermissionHelper
 import com.neilturner.aerialviews.ui.helpers.RefreshRateHelper
 import com.neilturner.aerialviews.ui.helpers.WindowHelper
+import com.neilturner.aerialviews.ui.overlays.BlueskyOverlay
 import com.neilturner.aerialviews.ui.overlays.MessageOverlay
 import com.neilturner.aerialviews.ui.overlays.MetadataOverlay
 import com.neilturner.aerialviews.ui.overlays.NowPlayingOverlay
@@ -92,6 +93,7 @@ class ScreenController(
     private var sonosService: SonosService? = null
     private var weatherService: WeatherService? = null
     private var musicPlayer: MusicPlayer? = null
+    private lateinit var blueskyOverlay: BlueskyOverlay
     private val overlayStateStore = OverlayStateStore()
     private val overlayEventBridge = OverlayEventBridge(overlayStateStore)
     private val metadataResolver = MetadataResolver()
@@ -214,6 +216,20 @@ class ScreenController(
         // Setup overlays and set initial positions
         overlayHelper = OverlayHelper(context, GeneralPrefs)
         val overlayIds = overlayHelper.buildOverlaysAndIds(overlayViewBinding)
+        blueskyOverlay = BlueskyOverlay(context)
+        val cardSize = (440 * resources.displayMetrics.density).toInt()
+        val cardMargin = (34 * resources.displayMetrics.density).toInt()
+        val cardParams =
+            androidx.constraintlayout.widget.ConstraintLayout.LayoutParams(
+                cardSize,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topToTop = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+                endToEnd = androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+                topMargin = cardMargin
+                marginEnd = cardMargin
+            }
+        overlayViewBinding.layout.addView(blueskyOverlay, cardParams)
         this.bottomLeftIds = overlayIds.bottomLeftIds
         this.bottomRightIds = overlayIds.bottomRightIds
         this.topLeftIds = overlayIds.topLeftIds
@@ -275,9 +291,11 @@ class ScreenController(
             }
 
             if (overlayHelper.findOverlay<MessageOverlay>().isNotEmpty() && GeneralPrefs.messageApiEnabled) {
-                KtorServer.start(context) { messageEvent ->
-                    GlobalBus.post(messageEvent)
-                }
+                KtorServer.start(
+                    context,
+                    { messageEvent -> GlobalBus.post(messageEvent) },
+                    { blueskyEvent -> GlobalBus.post(blueskyEvent) },
+                )
             }
 
             // Build playlist and start screensaver
@@ -1342,6 +1360,7 @@ class ScreenController(
 
     private fun renderOverlayState(state: OverlayUiState) {
         renderMetadataOverlays(state)
+        blueskyOverlay.render(state.bluesky)
 
         overlayHelper.findOverlay<NowPlayingOverlay>().forEach {
             it.render(state.nowPlaying)
