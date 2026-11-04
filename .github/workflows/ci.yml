@@ -26,3 +26,11 @@ jobs:
     - name: Run tests and build debug APK with Gradle
       run: |
         ./gradlew testGithubDebugUnitTest assembleGithubDebug
+
+    - name: Upload debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: aerial-views-bluesky-overlay
+        path: app/build/outputs/apk/github/debug/*.apk
+        if-no-files-found: error
+        retention-days: 7
