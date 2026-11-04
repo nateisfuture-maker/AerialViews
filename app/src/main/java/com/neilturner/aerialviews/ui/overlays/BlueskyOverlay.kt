@@ -25,12 +25,12 @@ class BlueskyOverlay(context: Context) : LinearLayout(context) {
         orientation = VERTICAL
         setPadding(dp(22), dp(18), dp(22), dp(18))
         background = GradientDrawable().apply {
-            setColor(Color.rgb(24, 27, 34))
+            setColor(Color.argb(179, 24, 27, 34))
             cornerRadius = dp(22).toFloat()
             setStroke(dp(1), Color.argb(45, 255, 255, 255))
         }
         elevation = dp(8).toFloat()
-        alpha = 0.96f
+        alpha = 1f
         visibility = View.GONE
 
         val header = LinearLayout(context).apply {
