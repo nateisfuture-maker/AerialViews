@@ -1,5 +1,6 @@
 package com.neilturner.aerialviews.ui.overlays.state
 
+import com.neilturner.aerialviews.services.BlueskyPostEvent
 import com.neilturner.aerialviews.services.MessageEvent
 import com.neilturner.aerialviews.services.MusicEvent
 import com.neilturner.aerialviews.services.weather.ForecastEvent
@@ -22,6 +23,9 @@ class OverlayEventBridge(
         }
         receiver.subscribe<ForecastEvent> { event ->
             store.setForecast(event)
+        }
+        receiver.subscribe<BlueskyPostEvent> { event ->
+            store.setBluesky(event)
         }
         receiver.subscribe<MessageEvent> { event ->
             store.setMessage(event.type, event.toState())
