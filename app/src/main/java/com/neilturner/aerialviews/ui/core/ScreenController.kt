@@ -290,7 +290,7 @@ class ScreenController(
                 }
             }
 
-            if (overlayHelper.findOverlay<MessageOverlay>().isNotEmpty() && GeneralPrefs.messageApiEnabled) {
+            if (GeneralPrefs.messageApiEnabled) {
                 KtorServer.start(
                     context,
                     { messageEvent -> GlobalBus.post(messageEvent) },
