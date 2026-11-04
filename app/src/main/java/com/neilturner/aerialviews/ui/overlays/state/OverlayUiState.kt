@@ -2,6 +2,7 @@ package com.neilturner.aerialviews.ui.overlays.state
 
 import com.neilturner.aerialviews.models.enums.MetadataType
 import com.neilturner.aerialviews.models.enums.OverlayType
+import com.neilturner.aerialviews.services.BlueskyPostEvent
 import com.neilturner.aerialviews.services.MessageEvent
 import com.neilturner.aerialviews.services.MusicEvent
 import com.neilturner.aerialviews.services.weather.ForecastEvent
@@ -11,6 +12,7 @@ import com.neilturner.aerialviews.ui.controls.ProgressState
 data class OverlayUiState(
     val metadata: Map<OverlayType, MetadataOverlayState> = emptyMap(),
     val message: Map<OverlayType, MessageOverlayState> = emptyMap(),
+    val bluesky: BlueskyPostEvent? = null,
     val nowPlaying: NowPlayingOverlayState = NowPlayingOverlayState(),
     val weather: WeatherOverlayState = WeatherOverlayState(),
     val forecast: ForecastOverlayState = ForecastOverlayState(),
