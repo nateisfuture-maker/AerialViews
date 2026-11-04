@@ -143,7 +143,7 @@ object KtorServer {
                         Timber.e(throwable, "Ktor server coroutine failure")
                     }
                 module {
-                    messageApiModule(onMessageReceived, validTextSizes, validTextWeights, onBlueskyReceived)
+                    messageApiModule(onMessageReceived, validTextSizes, validTextWeights, onBlueskyReceived = onBlueskyReceived)
                 }
             }
 
