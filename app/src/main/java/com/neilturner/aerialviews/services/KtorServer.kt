@@ -78,6 +78,8 @@ object KtorServer {
 
     @Volatile
     private var onMessageReceived: (MessageEvent) -> Unit = {}
+    @Volatile
+    private var onBlueskyReceived: (BlueskyPostEvent) -> Unit = {}
 
     private var appContext: Context? = null
     private var validTextSizes: List<Int> = emptyList()
@@ -92,8 +94,10 @@ object KtorServer {
     fun start(
         context: Context,
         onMessageReceived: (MessageEvent) -> Unit,
+        onBlueskyReceived: (BlueskyPostEvent) -> Unit = {},
     ) {
         this.onMessageReceived = onMessageReceived
+        this.onBlueskyReceived = onBlueskyReceived
         this.appContext = context.applicationContext
         loadValidationArrays()
 
@@ -139,7 +143,7 @@ object KtorServer {
                         Timber.e(throwable, "Ktor server coroutine failure")
                     }
                 module {
-                    messageApiModule(onMessageReceived, validTextSizes, validTextWeights)
+                    messageApiModule(onMessageReceived, validTextSizes, validTextWeights, onBlueskyReceived)
                 }
             }
 
@@ -194,11 +198,35 @@ internal fun Application.messageApiModule(
     validTextWeights: List<Int> = DefaultTextWeights,
     defaultTextSize: Int = DEFAULT_TEXT_SIZE,
     defaultTextWeight: Int = DEFAULT_TEXT_WEIGHT,
+    onBlueskyReceived: (BlueskyPostEvent) -> Unit = {},
 ) {
     install(ContentNegotiation) { json(JsonHelper.json) }
     routing {
         get("/status") {
             call.respondText("Aerial Views message API is running", ContentType.Text.Plain)
+        }
+
+        post("/bluesky") {
+            try {
+                val request = call.receive<BlueskyPostRequest>()
+                if (request.text.isBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, ErrorResponse(error = "Post text is required."))
+                } else {
+                    onBlueskyReceived(
+                        BlueskyPostEvent(
+                            displayName = request.displayName.ifBlank { "Rice" },
+                            handle = request.handle.ifBlank { "@riceshitsalotz.bsky.social" },
+                            text = request.text.take(1000),
+                            avatarUrl = request.avatarUrl,
+                            createdAt = request.createdAt,
+                        ),
+                    )
+                    call.respond(HttpStatusCode.OK, SuccessResponse(message = "Bluesky post displayed"))
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error processing Bluesky post")
+                call.respond(HttpStatusCode.BadRequest, ErrorResponse(error = "Invalid Bluesky post payload."))
+            }
         }
 
         post("/message/{messageNumber}") {
@@ -322,4 +350,22 @@ data class MessageEvent(
     val duration: Int? = null,
     val textSize: Int? = null,
     val textWeight: Int? = null,
+)
+
+
+@Serializable
+data class BlueskyPostRequest(
+    val text: String,
+    val displayName: String = "Rice",
+    val handle: String = "@riceshitsalotz.bsky.social",
+    val avatarUrl: String? = null,
+    val createdAt: String? = null,
+)
+
+data class BlueskyPostEvent(
+    val displayName: String,
+    val handle: String,
+    val text: String,
+    val avatarUrl: String? = null,
+    val createdAt: String? = null,
 )
