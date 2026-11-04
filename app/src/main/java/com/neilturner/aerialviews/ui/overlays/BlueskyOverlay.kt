@@ -2,22 +2,28 @@ package com.neilturner.aerialviews.ui.overlays
 
 import android.content.Context
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.text.SpannableStringBuilder
+import android.text.style.ForegroundColorSpan
+import android.text.style.StyleSpan
 import android.view.Gravity
 import android.view.View
-import android.view.ViewOutlineProvider
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
 import coil3.load
 import com.neilturner.aerialviews.services.BlueskyPostEvent
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-/** A compact native Bluesky-style card drawn over the Aerial Views scenery. */
+/** A compact native Bluesky-style post card drawn over the Aerial Views scenery. */
 class BlueskyOverlay(context: Context) : LinearLayout(context) {
     private val avatar: ImageView
-    private val displayName: TextView
-    private val handle: TextView
+    private val identity: TextView
     private val postText: TextView
     private val timestamp: TextView
 
@@ -30,7 +36,6 @@ class BlueskyOverlay(context: Context) : LinearLayout(context) {
             setStroke(dp(1), Color.argb(45, 255, 255, 255))
         }
         elevation = dp(8).toFloat()
-        alpha = 1f
         visibility = View.GONE
 
         val header = LinearLayout(context).apply {
@@ -46,26 +51,14 @@ class BlueskyOverlay(context: Context) : LinearLayout(context) {
             clipToOutline = true
             setImageResource(android.R.drawable.sym_def_app_icon)
         }
-        header.addView(avatar, LayoutParams(dp(52), dp(52)))
+        header.addView(avatar, LayoutParams(dp(48), dp(48)))
 
-        val identity = LinearLayout(context).apply {
-            orientation = VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(13), 0, 0, 0)
-        }
-        displayName = TextView(context).apply {
+        identity = TextView(context).apply {
             setTextColor(Color.WHITE)
-            textSize = 19f
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
-            maxLines = 1
+            textSize = 16f
+            maxLines = 2
+            setPadding(dp(12), 0, 0, 0)
         }
-        handle = TextView(context).apply {
-            setTextColor(Color.rgb(166, 174, 188))
-            textSize = 14f
-            maxLines = 1
-        }
-        identity.addView(displayName)
-        identity.addView(handle)
         header.addView(identity, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         addView(header)
 
@@ -73,8 +66,8 @@ class BlueskyOverlay(context: Context) : LinearLayout(context) {
             setTextColor(Color.rgb(245, 246, 248))
             textSize = 18f
             setLineSpacing(dp(3).toFloat(), 1f)
-            maxLines = 7
-            setPadding(0, dp(16), 0, dp(8))
+            maxLines = 8
+            setPadding(0, dp(14), 0, dp(8))
         }
         addView(postText)
 
@@ -90,17 +83,47 @@ class BlueskyOverlay(context: Context) : LinearLayout(context) {
             isVisible = false
             return
         }
-        displayName.text = post.displayName
-        handle.text = post.handle
+
+        val name = post.displayName.ifBlank { "Rice" }
+        val handleAndTime = buildString {
+            append(post.handle)
+            formatTimestamp(post.createdAt)?.let {
+                append(" · ")
+                append(it)
+            }
+        }
+        identity.text = SpannableStringBuilder(name).apply {
+            setSpan(StyleSpan(Typeface.BOLD), 0, name.length, 0)
+            append("  ")
+            val detailStart = length
+            append(handleAndTime)
+            setSpan(ForegroundColorSpan(Color.rgb(166, 174, 188)), detailStart, length, 0)
+        }
+
         postText.text = post.text
-        timestamp.text = post.createdAt.orEmpty()
-        timestamp.visibility = if (post.createdAt.isNullOrBlank()) View.GONE else View.VISIBLE
-        if (post.avatarUrl.isNullOrBlank()) {
-            avatar.setImageResource(android.R.drawable.sym_def_app_icon)
-        } else {
-            avatar.load(post.avatarUrl)
+        timestamp.visibility = View.GONE
+
+        avatar.setImageResource(android.R.drawable.sym_def_app_icon)
+        if (!post.avatarUrl.isNullOrBlank()) {
+            avatar.load(post.avatarUrl) {
+                listener(
+                    onError = { _, _ ->
+                        avatar.setImageResource(android.R.drawable.sym_def_app_icon)
+                    },
+                )
+            }
         }
         isVisible = true
+    }
+
+    private fun formatTimestamp(value: String?): String? {
+        if (value.isNullOrBlank()) return null
+        return runCatching {
+            val instant = Instant.parse(value)
+            DateTimeFormatter.ofPattern("MMM d · h:mm a", Locale.getDefault())
+                .withZone(ZoneId.systemDefault())
+                .format(instant)
+        }.getOrNull()
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
